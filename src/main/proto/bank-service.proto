@@ -30,3 +30,35 @@ service BankService {
   rpc withdraw(WithdrawRequest) returns (stream Money);
   rpc cashDeposit(stream DepositRequest) returns (Balance);
 }
+
+message MetaData {
+  string name = 1;
+  string type = 2;
+}
+
+message File {
+  bytes content = 1;
+}
+
+enum Status {
+  PENDING = 0;
+  IN_PROGRESS = 1;
+  SUCCESS = 2;
+  FAILED = 3;
+}
+
+message FileUploadRequest {
+  oneof request {
+    MetaData metadata = 1;
+    File file = 2;
+  }
+}
+
+message FileUploadResponse {
+  string name = 1;
+  Status status = 2;
+}
+
+service FileService {
+  rpc upload(stream FileUploadRequest) returns(FileUploadResponse);
+}

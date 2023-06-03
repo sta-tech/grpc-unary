@@ -4,13 +4,17 @@ import io.grpc.Status
 import io.grpc.stub.StreamObserver
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
 import ru.statech.*
+import java.io.FileOutputStream
+import java.io.OutputStream
 
 class BankServer(private val port: Int) {
     val server: Server = ServerBuilder
         .forPort(port)
         .addService(BankService())
+        .addService(FileService())
         .build()
 
     fun start() {
@@ -55,6 +59,33 @@ class BankServer(private val port: Int) {
             var sum = 0
             requests.collect { request -> sum += request.amount }
             return Balance.newBuilder().setAmount(sum).build()
+        }
+    }
+
+    internal class FileService: FileServiceGrpcKt.FileServiceCoroutineImplBase() {
+        override suspend fun upload(requests: Flow<FileUploadRequest>): FileUploadResponse {
+            var writer: OutputStream? = null
+            var status: ru.statech.Status;
+
+            try {
+                requests.collect { request ->
+                    if (writer === null) {
+                        writer = FileOutputStream("/Users/estatkovskii/File_Copy.pdf")
+                    }
+                    writer?.write(request.file.content.toByteArray())
+                    writer?.flush()
+                }
+
+                status = ru.statech.Status.SUCCESS;
+            }
+            catch (err: Exception) {
+                status = ru.statech.Status.FAILED;
+            }
+
+            return FileUploadResponse.newBuilder()
+                .setName("File_Copy.pdf")
+                .setStatus(status)
+                .build();
         }
     }
 }
